@@ -124,7 +124,8 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+            backgroundColor: const Color.fromARGB(255, 216, 215, 215),
+
       key: _scaffoldKey,
       appBar: AppBar(
         title: Text(
@@ -260,49 +261,38 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          
-          gradient: LinearGradient(
-            colors: [const Color.fromARGB(255, 159, 143, 143), const Color.fromARGB(255, 255, 255, 255)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _studentData == null
-                ? const Center(child: Text('No student data found.'))
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.grey.shade300,
-                          backgroundImage: _studentData!['image'] != null
-                              ? NetworkImage(_studentData!['image'])
-                              : null,
-                          child: _studentData!['image'] == null
-                              ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                              : null,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildProfileItem(_getTranslatedText('Name'), _studentData!['name']),
-                        const SizedBox(height: 15),
-                        _buildProfileItem(_getTranslatedText('Phone Number'), _studentData!['number']),
-                        const SizedBox(height: 15),
-                        _buildProfileItem(_getTranslatedText('Class'), _studentData!['class']),
-                        const SizedBox(height: 15),
-                        _buildProfileItem(_getTranslatedText('School'), _studentData!['school']),
-                        const SizedBox(height: 15),
-                        _buildProfileItem(_getTranslatedText('Sirpakam'), _studentData!['sirpakam']),
-                      ],
-                    ),
+      body: 
+       _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _studentData == null
+              ? const Center(child: Text('No student data found.'))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey.shade300,
+                        backgroundImage: _studentData!['image'] != null
+                            ? NetworkImage(_studentData!['image'])
+                            : null,
+                        child: _studentData!['image'] == null
+                            ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                            : null,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildProfileItem(_getTranslatedText('Name'), _studentData!['name']),
+                      const SizedBox(height: 15),
+                      _buildProfileItem(_getTranslatedText('Phone Number'), _studentData!['number']),
+                      const SizedBox(height: 15),
+                      _buildProfileItem(_getTranslatedText('Class'), _studentData!['class']),
+                      const SizedBox(height: 15),
+                      _buildProfileItem(_getTranslatedText('School'), _studentData!['school']),
+                      const SizedBox(height: 15),
+                      _buildProfileItem(_getTranslatedText('Sirpakam'), _studentData!['sirpakam']),
+                    ],
                   ),
-      ),
+                ),
     );
   }
 

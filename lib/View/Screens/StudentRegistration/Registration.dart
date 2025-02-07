@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -57,7 +56,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
 class FillYourProfileScreen extends StatefulWidget {
   final String selectedLanguage;
-  const FillYourProfileScreen({Key? key, required this.selectedLanguage}) : super(key: key);
+  const FillYourProfileScreen({Key? key, required this.selectedLanguage})
+      : super(key: key);
   @override
   State<FillYourProfileScreen> createState() => _FillYourProfileScreenState();
 }
@@ -66,12 +66,18 @@ class _FillYourProfileScreenState extends State<FillYourProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _number = TextEditingController();
-  final _class = TextEditingController();
+  String? _selectedClass;
   final _school = TextEditingController();
   File? _image;
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
   String? _selectedSirpakam;
+  final List<String> classList = [
+    'Young Minds (5th to 7th)',
+    'Achievers (8th to 10th)',
+    'Vibrant Vibes (11th to 12th)',
+    'Master Minds (Degree and above)'
+  ];
   final Map<String, List<String>> _sirpakamOptions = {
     'en': ['Chennai', 'Coimbatore', 'Madurai', 'Salem'],
     'ta': ['சென்னை', 'கோயம்புத்தூர்', 'மதுரை', 'சேலம்']
@@ -100,7 +106,7 @@ class _FillYourProfileScreenState extends State<FillYourProfileScreen> {
     }
   };
 
- Future<void> _pickImage() async {
+  Future<void> _pickImage() async {
     final picker = ImagePicker();
     try {
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -141,47 +147,61 @@ class _FillYourProfileScreenState extends State<FillYourProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedSirpakam == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a Sirpakam')),
-      );
-      return;
-    }
-    setState(() => _isLoading = true);
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Please log in to save your profile')));
-      setState(() => _isLoading = false);
-      return;
-    }
-    String? imageUrl = await _uploadToCloudinary();
+  if (!_formKey.currentState!.validate()) return;
+
+  if (_selectedClass == null || _selectedSirpakam == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select both Class and Sirpakam')),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please log in to save your profile')),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  String? imageUrl;
+  if (_image != null) {
+    imageUrl = await _uploadToCloudinary();
     if (imageUrl == null) {
       setState(() => _isLoading = false);
       return;
     }
-    final studentId = Uuid().v4();
-    try {
-      await FirebaseFirestore.instance.collection('students_registration').doc(studentId).set({
-        'studentId': studentId,
-        'name': _name.text.trim(),
-        'number': _number.text.trim(),
-        'class': _class.text.trim(),
-        'school': _school.text.trim(),
-        'sirpakam': _selectedSirpakam, // Save selected Sirpakam
-        'image': imageUrl,
-        'userId': user.uid,
-      });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Profile saved successfully!')));
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => Bottomnav()));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to save profile: $e')));
-    }
-    setState(() => _isLoading = false);
   }
+
+  try {
+    await FirebaseFirestore.instance.collection('students_registration').doc(user.uid).set({
+      'studentId': user.uid,  // ✅ Use UID as document ID
+      'userId': user.uid,
+      'name': _name.text.trim(),
+      'number': _number.text.trim(),
+      'class': _selectedClass,
+      'school': _school.text.trim(),
+      'sirpakam': _selectedSirpakam,
+      'image': imageUrl,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Profile saved successfully!')),
+    );
+
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => Bottomnav()));
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save profile: $e')),
+    );
+  }
+
+  setState(() => _isLoading = false);
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -204,16 +224,35 @@ class _FillYourProfileScreenState extends State<FillYourProfileScreen> {
                     backgroundColor: Colors.grey.shade300,
                     backgroundImage: _image != null ? FileImage(_image!) : null,
                     child: _image == null
-                        ? Icon(Icons.person, size: 50, color: Colors.grey.shade600)
+                        ? Icon(Icons.person,
+                            size: 50, color: Colors.grey.shade600)
                         : null,
                   ),
                 ),
                 SizedBox(height: 20),
                 _buildTextField(_name, translations[lang]!['name']!),
                 SizedBox(height: 10),
-                _buildTextField(_number, translations[lang]!['number']!, keyboardType: TextInputType.phone),
+                _buildTextField(_number, translations[lang]!['number']!,
+                    keyboardType: TextInputType.phone),
                 SizedBox(height: 10),
-                _buildTextField(_class, translations[lang]!['class']!),
+                DropdownButtonFormField<String>(
+                  value: _selectedClass,
+                  decoration: InputDecoration(
+                    labelText: translations[lang]!['class']!,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: classList.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedClass = newValue;
+                    });
+                  },
+                ),
                 SizedBox(height: 10),
                 _buildTextField(_school, translations[lang]!['school']!),
                 SizedBox(height: 10),
@@ -248,7 +287,8 @@ class _FillYourProfileScreenState extends State<FillYourProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextField(TextEditingController controller, String label,
+      {TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
