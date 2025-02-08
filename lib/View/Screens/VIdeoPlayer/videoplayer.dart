@@ -1,6 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final Map<String, dynamic> video;
@@ -16,30 +19,51 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   ChewieController? _chewieController;
   bool _isLoading = true;
   bool _hasError = false;
+  String _teacherName = 'Loading...';
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
+    _fetchTeacherName();
+  }
+
+  Future<void> _fetchTeacherName() async {
+    try {
+      final teacherDoc = await FirebaseFirestore.instance
+          .collection('teachers_registration')
+          .doc(widget.video['teacher_uuid'])
+          .get();
+
+      if (teacherDoc.exists && teacherDoc.data() != null) {
+        setState(() {
+          _teacherName = teacherDoc['name'] ?? 'Unknown Teacher';
+        });
+      } else {
+        setState(() {
+          _teacherName = 'Unknown Teacher';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _teacherName = 'Unknown Teacher';
+      });
+    }
   }
 
   Future<void> _initializeVideo() async {
     try {
-      // Initialize the video player
       _videoPlayerController = VideoPlayerController.networkUrl(
         Uri.parse(widget.video['video_url']),
       );
 
-      // Wait for the video to initialize
       await _videoPlayerController.initialize();
 
-      // Check if the video is initialized and has a valid duration
       if (_videoPlayerController.value.isInitialized) {
         setState(() {
           _isLoading = false;
         });
 
-        // Initialize ChewieController
         _chewieController = ChewieController(
           videoPlayerController: _videoPlayerController,
           autoPlay: true,
@@ -51,7 +75,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           placeholder: Container(
             color: Colors.black,
             child: const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
             ),
           ),
           errorBuilder: (context, errorMessage) {
@@ -70,7 +96,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         });
       }
     } catch (e) {
-      // Handle any errors during initialization
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -89,73 +114,170 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.video['chapter'] ?? 'Video Player',style: TextStyle(color: Colors.white),),
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.video['chapter'] ?? 'Video Player',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'By $_teacherName',
+              style: GoogleFonts.poppins(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.black,
         elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_isLoading)
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_hasError)
-              Expanded(
-                child: Center(
-                  child: Text(
-                    'Failed to load video. Please check the URL or network connection.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              )
-            else
-              AspectRatio(
-                aspectRatio: _videoPlayerController.value.aspectRatio,
-                child: Chewie(controller: _chewieController!),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.video['chapter'] ?? 'No Title',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.video['description'] ?? 'No Description',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Teacher ID: ${widget.video['teacher_uuid'] ?? 'N/A'}",
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
+            Container(
+              color: Colors.black,
+              child: _buildVideoPlayer(),
             ),
+            _buildContentSection(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    if (_isLoading) {
+      return const AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
+      );
+    } else if (_hasError) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Container(
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, color: Colors.red, size: 48),
+                SizedBox(height: 16),
+                Text(
+                  'Failed to load video.\nPlease check your connection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      return AspectRatio(
+        aspectRatio: _videoPlayerController.value.aspectRatio,
+        child: Chewie(controller: _chewieController!),
+      );
+    }
+  }
+
+  Widget _buildContentSection() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Chapter Title
+          Text(
+            widget.video['chapter'] ?? 'No Title',
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Teacher Info
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
+                SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Instructor',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Text(
+                      _teacherName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Description Section
+          Text(
+            'Description',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Text(
+              widget.video['description'] ?? 'No description available',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.black87,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
