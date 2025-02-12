@@ -9,7 +9,7 @@ class ValidationHelper {
   }
 
   final emailRegex = RegExp(r'^[^@\s]+@gmail\.com$');
-  if (!emailRegex.hasMatch(value)) {
+  if (   !emailRegex.hasMatch(value)) {
     return 'Please enter a valid Gmail address';
   }
 

@@ -82,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen> {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              'Shilpi',
+                              'Sirpi',
                               style: GoogleFonts.poppins(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
