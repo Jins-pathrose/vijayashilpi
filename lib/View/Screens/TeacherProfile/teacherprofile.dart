@@ -1,179 +1,25 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart';
-
-// class TeacherProfilePage extends StatefulWidget {
-//   final String teacherUuid;
-
-//   const TeacherProfilePage({Key? key, required this.teacherUuid}) : super(key: key);
-
-//   @override
-//   _TeacherProfilePageState createState() => _TeacherProfilePageState();
-// }
-
-// class _TeacherProfilePageState extends State<TeacherProfilePage> {
-//   Map<String, dynamic>? teacherData;
-//   bool isLoading = true;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _fetchTeacherData();
-//   }
-
-//   Future<void> _fetchTeacherData() async {
-//     try {
-//       DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-//           .collection('teachers_registration')
-//           .doc(widget.teacherUuid)
-//           .get();
-
-//       if (teacherDoc.exists && teacherDoc.data() != null) {
-//         setState(() {
-//           teacherData = teacherDoc.data() as Map<String, dynamic>;
-//           isLoading = false;
-//         });
-//       } else {
-//         setState(() {
-//           isLoading = false;
-//           teacherData = null;
-//         });
-//       }
-//     } catch (e) {
-//       setState(() {
-//         isLoading = false;
-//         teacherData = null;
-//       });
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('Error fetching teacher data: $e')),
-//       );
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text(
-//           'Teacher Profile',
-//           style: GoogleFonts.poppins(
-//             color: Colors.white,
-//             fontWeight: FontWeight.bold,
-//           ),
-//         ),
-//         backgroundColor: Colors.black,
-//         elevation: 0,
-//       ),
-//       body: isLoading
-//           ? const Center(child: CircularProgressIndicator())
-//           : teacherData == null
-//               ? const Center(child: Text('No teacher data found.'))
-//               : SingleChildScrollView(
-//                   padding: const EdgeInsets.all(20),
-//                   child: Column(
-//                     children: [
-//                       /// **Profile Image**
-//                       CircleAvatar(
-//                         radius: 60,
-//                         backgroundColor: Colors.grey.shade300,
-//                         backgroundImage: teacherData!['image'] != null
-//                             ? NetworkImage(teacherData!['image'])
-//                             : null,
-//                         child: teacherData!['image'] == null
-//                             ? const Icon(Icons.person, size: 60, color: Colors.grey)
-//                             : null,
-//                       ),
-//                       const SizedBox(height: 20),
-
-//                       /// **Teacher Name**
-//                       Text(
-//                         teacherData!['name'] ?? 'No Name',
-//                         style: GoogleFonts.poppins(
-//                           fontSize: 24,
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 10),
-
-//                       /// **Subject**
-//                       Text(
-//                         teacherData!['subject'] ?? 'No Subject',
-//                         style: TextStyle(
-//                           fontSize: 16,
-//                           color: Colors.grey[600],
-//                         ),
-//                       ),
-//                       const SizedBox(height: 30),
-
-//                       /// **Profile Details**
-//                       _buildProfileItem('Email', teacherData!['email'] ?? 'No Email'),
-//                       const SizedBox(height: 15),
-//                       _buildProfileItem('Phone Number', teacherData!['number'] ?? 'No Number'),
-//                       const SizedBox(height: 15),
-//                       _buildProfileItem('Class Category', teacherData!['classCategory'] ?? 'Not specified'),
-//                     ],
-//                   ),
-//                 ),
-//     );
-//   }
-
-//   /// **Reusable Widget for Profile Details**
-//   Widget _buildProfileItem(String label, String value) {
-//     return Container(
-//       width: double.infinity,
-//       padding: const EdgeInsets.all(15),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(10),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.grey.withOpacity(0.2),
-//             spreadRadius: 1,
-//             blurRadius: 5,
-//             offset: const Offset(0, 3),
-//           ),
-//         ],
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(
-//             label,
-//             style: const TextStyle(
-//               fontSize: 14,
-//               color: Colors.grey,
-//             ),
-//           ),
-//           const SizedBox(height: 5),
-//           Text(
-//             value,
-//             style: const TextStyle(
-//               fontSize: 18,
-//               fontWeight: FontWeight.bold,
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:vijay_shilpi/Controller/Teacherprofile/bloc/teacherprofile_bloc.dart';
 import 'package:vijay_shilpi/Controller/Teacherprofile/bloc/teacherprofile_event.dart';
 import 'package:vijay_shilpi/Controller/Teacherprofile/bloc/teacherprofile_state.dart';
+import 'package:vijay_shilpi/View/Screens/Chatpage/chat_page.dart';
+import 'package:vijay_shilpi/View/Widgets/TeaceherProfileWidgets/buildprofileitem.dart';
 
 class TeacherProfilePage extends StatelessWidget {
   final String teacherUuid;
 
-  const TeacherProfilePage({Key? key, required this.teacherUuid}) : super(key: key);
+  const TeacherProfilePage({Key? key, required this.teacherUuid})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => TeacherProfileBloc()..add(FetchTeacherProfile(teacherUuid)),
+      create: (context) =>
+          TeacherProfileBloc()..add(FetchTeacherProfile(teacherUuid)),
       child: Scaffold(
         appBar: AppBar(
           title: Text(
@@ -198,7 +44,7 @@ class TeacherProfilePage extends StatelessWidget {
             if (state is TeacherProfileLoading) {
               return const Center(child: CircularProgressIndicator());
             } else if (state is TeacherProfileLoaded) {
-              return _buildProfileContent(state.teacherData);
+              return _buildProfileContent(state.teacherData, context);
             } else if (state is TeacherProfileError) {
               return Center(child: Text('Error: ${state.message}'));
             }
@@ -209,7 +55,8 @@ class TeacherProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileContent(Map<String, dynamic> teacherData) {
+  Widget _buildProfileContent(
+      Map<String, dynamic> teacherData, BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -241,52 +88,94 @@ class TeacherProfilePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 30),
-          _buildProfileItem('Email', teacherData['email'] ?? 'No Email'),
+          Buildprofileitem(
+              label: 'Email', value: teacherData['email'] ?? 'No Email'),
           const SizedBox(height: 15),
-          _buildProfileItem('Phone Number', teacherData['number'] ?? 'No Number'),
+          Buildprofileitem(
+              label: 'Phone Number',
+              value: teacherData['number'] ?? 'No Number'),
           const SizedBox(height: 15),
-          _buildProfileItem('Class Category', teacherData['classCategory'] ?? 'Not specified'),
+          Buildprofileitem(
+              label: 'Class Category',
+              value: teacherData['classCategory'] ?? 'Not specified'),
+          const SizedBox(height: 15),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                // Fetch current user UUID from students_registration
+                String currentUserUuid = await getCurrentUserUuid();
+
+                // Fetch teacher's name from teachers_registration
+                String teacherName = await getTeacherName(teacherUuid);
+
+                // Navigate to MessageScreen with the fetched details
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MessageScreen(
+                      currentUserUuid: currentUserUuid,
+                      teacherUuid: teacherUuid,
+                      teacherName: teacherName,
+                    ),
+                  ),
+                );
+              } catch (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $error')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Message',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
+            ),
+          ),
         ],
       ),
     );
+  }
+Future<String> getCurrentUserUuid() async {
+  User? user = FirebaseAuth.instance.currentUser;
+
+  if (user == null) {
+    throw 'No user is currently logged in';
   }
 
-  Widget _buildProfileItem(String label, String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
+  String userId = user.uid; // Firebase Authentication user ID
+
+  DocumentSnapshot studentDoc = await FirebaseFirestore.instance
+      .collection('students_registration')
+      .doc(userId)
+      .get();
+
+  if (studentDoc.exists) {
+    return studentDoc['studentId'];
+  } else {
+    throw 'Student UUID not found';
   }
+}
+
+// Fetch teacher's name using teacherUuid
+Future<String> getTeacherName(String teacherUuid) async {
+  var docSnapshot = await FirebaseFirestore.instance
+      .collection('teachers_registration')
+      .doc(teacherUuid)
+      .get();
+
+  if (docSnapshot.exists) {
+    return docSnapshot['name'] ?? 'Unknown Teacher';
+  } else {
+    throw 'Teacher not found';
+  }
+}
+
 }
