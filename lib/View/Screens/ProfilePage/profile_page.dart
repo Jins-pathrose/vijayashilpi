@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vijay_shilpi/Model/Authentication/auth_service.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/editprofile.dart';
+import 'package:vijay_shilpi/View/Screens/ProfilePage/subjectprogress.dart';
 import 'package:vijay_shilpi/View/authenticatioin/Login/students_login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -219,7 +220,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   await _auth.signOut();
                 }
               },
+            ),const Divider(),
+            // Language Change Option
+            ListTile(
+              leading: const Icon(Icons.auto_graph, color: Colors.black),
+              title: Text("My progressive"),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>StudentProgressPage()));
+              },
             ),
+
             const Divider(),
             // Language Change Option
             ListTile(
