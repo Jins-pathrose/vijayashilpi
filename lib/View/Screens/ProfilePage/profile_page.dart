@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vijay_shilpi/Model/Authentication/auth_service.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/editprofile.dart';
+import 'package:vijay_shilpi/View/Screens/ProfilePage/historypage.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/subjectprogress.dart';
 import 'package:vijay_shilpi/View/authenticatioin/Login/students_login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -171,6 +172,60 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             const Divider(),
+            // Language Change Option
+            ListTile(
+              leading: const Icon(Icons.auto_graph, color: Colors.black),
+              title: Text("My progressive"),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>StudentProgressPage()));
+              },
+            ),
+
+            const Divider(),
+            // Language Change Option
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.black),
+              title: Text(_getTranslatedText('Change Language')),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text(_getTranslatedText('Select Language')),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            title: Text('English'),
+                            onTap: () {
+                              _changeLanguage('en');
+                              Navigator.pop(context); // Close dialog
+                            },
+                          ),
+                          ListTile(
+                            title: Text('தமிழ்'),
+                            onTap: () {
+                              _changeLanguage('ta');
+                              Navigator.pop(context); // Close dialog
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.history, color: Colors.black),
+              title: Text("Learning History"),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>HistoryPage()));
+              },
+            ),
+            const Divider(),
             ListTile(
               leading: null,
               title: Row(
@@ -219,51 +274,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 if (shouldLogout == true) {
                   await _auth.signOut();
                 }
-              },
-            ),const Divider(),
-            // Language Change Option
-            ListTile(
-              leading: const Icon(Icons.auto_graph, color: Colors.black),
-              title: Text("My progressive"),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context)=>StudentProgressPage()));
-              },
-            ),
-
-            const Divider(),
-            // Language Change Option
-            ListTile(
-              leading: const Icon(Icons.language, color: Colors.black),
-              title: Text(_getTranslatedText('Change Language')),
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Text(_getTranslatedText('Select Language')),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            title: Text('English'),
-                            onTap: () {
-                              _changeLanguage('en');
-                              Navigator.pop(context); // Close dialog
-                            },
-                          ),
-                          ListTile(
-                            title: Text('தமிழ்'),
-                            onTap: () {
-                              _changeLanguage('ta');
-                              Navigator.pop(context); // Close dialog
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
               },
             ),
           ],

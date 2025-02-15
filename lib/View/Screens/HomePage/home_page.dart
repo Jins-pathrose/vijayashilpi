@@ -370,43 +370,103 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+// Future<void> _trackSubjectProgress(Map<String, dynamic> video) async {
+//   try {
+//     final user = FirebaseAuth.instance.currentUser;
+//     if (user == null) return;
+    
+//     // Get teacher_uuid from the video
+//     String teacherUuid = video['teacher_uuid'] ?? '';
+//     if (teacherUuid.isEmpty) return;
+    
+//     // Fetch teacher document to get the subject
+//     DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
+//         .collection('teachers_registration')
+//         .doc(teacherUuid)
+//         .get();
+    
+//     if (!teacherDoc.exists || teacherDoc.data() == null) return;
+    
+//     // Get the subject
+//     String subject = teacherDoc['subject'] ?? 'unknown';
+    
+//     // Get the current progress from Firestore
+//     DocumentSnapshot progressDoc = await FirebaseFirestore.instance
+//         .collection('student_progress')
+//         .doc(user.uid)
+//         .get();
+    
+//     Map<String, dynamic> progressData = {};
+//     if (progressDoc.exists && progressDoc.data() != null) {
+//       progressData = progressDoc.data() as Map<String, dynamic>;
+//     }
+    
+//     // Get the current subject progress
+//     int currentProgress = progressData[subject] ?? 0;
+    
+//     // Calculate new progress (increment by 1 for each video watched)
+//     int newProgress = currentProgress + 1;
+    
+//     // Update the progress in Firestore
+//     await FirebaseFirestore.instance
+//         .collection('student_progress')
+//         .doc(user.uid)
+//         .set({
+//           subject: newProgress,
+//           'last_updated': FieldValue.serverTimestamp(),
+//         }, SetOptions(merge: true));
+    
+//     // Show a success message or update UI as needed
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(
+//         content: Text('Your progress in $subject has been updated!'),
+//         duration: Duration(seconds: 2),
+//       ),
+//     );
+    
+//   } catch (e) {
+//     print('Error tracking subject progress: $e');
+//     // Handle error as needed
+//   }
+// }
+
 Future<void> _trackSubjectProgress(Map<String, dynamic> video) async {
   try {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
+
     // Get teacher_uuid from the video
     String teacherUuid = video['teacher_uuid'] ?? '';
     if (teacherUuid.isEmpty) return;
-    
+
     // Fetch teacher document to get the subject
     DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
         .collection('teachers_registration')
         .doc(teacherUuid)
         .get();
-    
+
     if (!teacherDoc.exists || teacherDoc.data() == null) return;
-    
+
     // Get the subject
     String subject = teacherDoc['subject'] ?? 'unknown';
-    
+
     // Get the current progress from Firestore
     DocumentSnapshot progressDoc = await FirebaseFirestore.instance
         .collection('student_progress')
         .doc(user.uid)
         .get();
-    
+
     Map<String, dynamic> progressData = {};
     if (progressDoc.exists && progressDoc.data() != null) {
       progressData = progressDoc.data() as Map<String, dynamic>;
     }
-    
+
     // Get the current subject progress
     int currentProgress = progressData[subject] ?? 0;
-    
+
     // Calculate new progress (increment by 1 for each video watched)
     int newProgress = currentProgress + 1;
-    
+
     // Update the progress in Firestore
     await FirebaseFirestore.instance
         .collection('student_progress')
@@ -415,7 +475,43 @@ Future<void> _trackSubjectProgress(Map<String, dynamic> video) async {
           subject: newProgress,
           'last_updated': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
-    
+
+    // Check if the video already exists in the history collection
+    QuerySnapshot historySnapshot = await FirebaseFirestore.instance
+        .collection('history')
+        .doc(user.uid)
+        .collection('watched_videos')
+        .where('chapter', isEqualTo: video['chapter'])
+        .where('teacher_uuid', isEqualTo: video['teacher_uuid'])
+        .get();
+
+    if (historySnapshot.docs.isNotEmpty) {
+      // Update the existing document with a new timestamp
+      await FirebaseFirestore.instance
+          .collection('history')
+          .doc(user.uid)
+          .collection('watched_videos')
+          .doc(historySnapshot.docs.first.id)
+          .update({
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    } else {
+      // Add a new document to the history collection
+      await FirebaseFirestore.instance
+          .collection('history')
+          .doc(user.uid)
+          .collection('watched_videos')
+          .add({
+            'chapter': video['chapter'],
+            'description': video['description'],
+            'video_url': video['video_url'],
+            'thumbnail_url': video['thumbnail_url'],
+            'teacher_uuid': video['teacher_uuid'],
+            'teacher_name': await _getTeacherName(video['teacher_uuid'] ?? ''),
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    }
+
     // Show a success message or update UI as needed
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -423,7 +519,7 @@ Future<void> _trackSubjectProgress(Map<String, dynamic> video) async {
         duration: Duration(seconds: 2),
       ),
     );
-    
+
   } catch (e) {
     print('Error tracking subject progress: $e');
     // Handle error as needed
