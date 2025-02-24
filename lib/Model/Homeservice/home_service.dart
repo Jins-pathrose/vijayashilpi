@@ -63,81 +63,89 @@ class HomeService {
       return 'Unknown Teacher';
     }
   }
+Future<void> trackSubjectProgress(Map<String, dynamic> video, Function(String) showMessage) async {
+  try {
+    final user = _auth.currentUser;
+    if (user == null) return;
 
-  Future<void> trackSubjectProgress(Map<String, dynamic> video, Function(String) showMessage) async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return;
+    String teacherUuid = video['teacher_uuid'] ?? '';
+    if (teacherUuid.isEmpty) return;
 
-      String teacherUuid = video['teacher_uuid'] ?? '';
-      if (teacherUuid.isEmpty) return;
+    // Get teacher document to determine the subject
+    DocumentSnapshot teacherDoc = await _firestore
+        .collection('teachers_registration')
+        .doc(teacherUuid)
+        .get();
 
-      DocumentSnapshot teacherDoc = await _firestore
-          .collection('teachers_registration')
-          .doc(teacherUuid)
-          .get();
+    if (!teacherDoc.exists || teacherDoc.data() == null) return;
 
-      if (!teacherDoc.exists || teacherDoc.data() == null) return;
+    String subject = teacherDoc['subject'] ?? 'unknown';
 
-      String subject = teacherDoc['subject'] ?? 'unknown';
+    // Check history to see if the video is already watched.
+    QuerySnapshot historySnapshot = await _firestore
+        .collection('history')
+        .doc(user.uid)
+        .collection('watched_videos')
+        .where('chapter', isEqualTo: video['chapter'])
+        .where('teacher_uuid', isEqualTo: teacherUuid)
+        .get();
 
-      DocumentSnapshot progressDoc = await _firestore
-          .collection('student_progress')
-          .doc(user.uid)
-          .get();
-
-      Map<String, dynamic> progressData = {};
-      if (progressDoc.exists && progressDoc.data() != null) {
-        progressData = progressDoc.data() as Map<String, dynamic>;
-      }
-
-      int currentProgress = progressData[subject] ?? 0;
-      int newProgress = currentProgress + 1;
-
+    // If the video is already watched, update only the history timestamp.
+    if (historySnapshot.docs.isNotEmpty) {
       await _firestore
-          .collection('student_progress')
-          .doc(user.uid)
-          .set({
-            subject: newProgress,
-            'last_updated': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-
-      QuerySnapshot historySnapshot = await _firestore
           .collection('history')
           .doc(user.uid)
           .collection('watched_videos')
-          .where('chapter', isEqualTo: video['chapter'])
-          .where('teacher_uuid', isEqualTo: video['teacher_uuid'])
-          .get();
-
-      if (historySnapshot.docs.isNotEmpty) {
-        await _firestore
-            .collection('history')
-            .doc(user.uid)
-            .collection('watched_videos')
-            .doc(historySnapshot.docs.first.id)
-            .update({
-              'timestamp': FieldValue.serverTimestamp(),
-            });
-      } else {
-        await _firestore
-            .collection('history')
-            .doc(user.uid)
-            .collection('watched_videos')
-            .add({
-              'chapter': video['chapter'],
-              'description': video['description'],
-              'video_url': video['video_url'],
-              'thumbnail_url': video['thumbnail_url'],
-              'teacher_uuid': video['teacher_uuid'],
-              'teacher_name': await getTeacherName(video['teacher_uuid'] ?? ''),
-              'timestamp': FieldValue.serverTimestamp(),
-            });
-      }
-
-      showMessage('Your progress in $subject has been updated!');
-    } catch (e) {
-      print('Error tracking subject progress: $e');
+          .doc(historySnapshot.docs.first.id)
+          .update({
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+      
+      // No progress update if video was already watched.
+      showMessage('This video has already been watched.');
+      return;
     }
+
+    // If the video is not already watched, update progress.
+    DocumentSnapshot progressDoc = await _firestore
+        .collection('student_progress')
+        .doc(user.uid)
+        .get();
+
+    Map<String, dynamic> progressData = {};
+    if (progressDoc.exists && progressDoc.data() != null) {
+      progressData = progressDoc.data() as Map<String, dynamic>;
+    }
+
+    int currentProgress = progressData[subject] ?? 0;
+    int newProgress = currentProgress + 1;
+
+    await _firestore
+        .collection('student_progress')
+        .doc(user.uid)
+        .set({
+          subject: newProgress,
+          'last_updated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+    // Then add a new history record
+    await _firestore
+        .collection('history')
+        .doc(user.uid)
+        .collection('watched_videos')
+        .add({
+          'chapter': video['chapter'],
+          'description': video['description'],
+          'video_url': video['video_url'],
+          'thumbnail_url': video['thumbnail_url'],
+          'teacher_uuid': teacherUuid,
+          'teacher_name': await getTeacherName(teacherUuid),
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+    showMessage('Your progress in $subject has been updated!');
+  } catch (e) {
+    print('Error tracking subject progress: $e');
   }
+}
 }

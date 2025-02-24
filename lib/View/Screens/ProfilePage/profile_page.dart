@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vijay_shilpi/Model/Authentication/auth_service.dart';
+import 'package:vijay_shilpi/View/Screens/GeminiAi/gemini_ai.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/editprofile.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/historypage.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/subjectprogress.dart';
@@ -114,6 +115,16 @@ class _ProfilePageState extends State<ProfilePage> {
           return 'சுயவிவரம் திருத்து';
         case 'Logout':
           return 'உள்நுழைவிற்கு \n வெளியேறு';
+          case 'My progressive':
+          return 'என் முற்போக்கு';
+           case 'Change Language':
+          return 'மொழியை மாற்று';
+          case 'Settings':
+          return 'அமைப்புகள்';
+          case 'Learning History':
+          return 'வரலாறு கற்றல்';
+          case 'Artificial Intelligence':
+          return 'செயற்கை நுண்ணறிவு';
         default:
           return label;
       }
@@ -152,9 +163,9 @@ class _ProfilePageState extends State<ProfilePage> {
               decoration: const BoxDecoration(
                 color: Colors.black,
               ),
-              child: const Center(
+              child:  Center(
                 child: Text(
-                  'Settings',
+                  _getTranslatedText('Settings'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -175,7 +186,7 @@ class _ProfilePageState extends State<ProfilePage> {
             // Language Change Option
             ListTile(
               leading: const Icon(Icons.auto_graph, color: Colors.black),
-              title: Text("My progressive"),
+              title: Text(_getTranslatedText("My progressive")),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context)=>StudentProgressPage()));
               },
@@ -220,9 +231,17 @@ class _ProfilePageState extends State<ProfilePage> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.history, color: Colors.black),
-              title: Text("Learning History"),
+              title: Text(_getTranslatedText("Learning History")),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context)=>HistoryPage()));
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.smart_toy_sharp, color: Colors.black),
+              title: Text(_getTranslatedText("Artificial Intelligence")),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>GeminiChatScreen()));
               },
             ),
             const Divider(),

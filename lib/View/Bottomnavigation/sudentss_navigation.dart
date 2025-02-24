@@ -1,11 +1,10 @@
-
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vijay_shilpi/View/Screens/Chatpage/chat_list.dart';
+import 'package:vijay_shilpi/View/Screens/GeminiAi/gemini_ai.dart';
 import 'package:vijay_shilpi/View/Screens/HomePage/home_page.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/profile_page.dart';
 import 'package:vijay_shilpi/View/Screens/SearchPage/search_page.dart';
@@ -83,12 +82,13 @@ class _BottomnavState extends State<Bottomnav> with TickerProviderStateMixin {
       screens = [
         HomePage(),
         SearchPage(studentClass: studentClass ?? ''), // Pass studentClass here
-    ChatListScreen(),
+        ChatListScreen(),
         ProfilePage(),
       ];
     });
   }
-Future<void> openCheck() async {
+
+  Future<void> openCheck() async {
     var options = {
       'key': 'rzp_test_aaPtOi8SSaUyku', // Replace with your test key
       'amount': 10000, // Amount in paisa (e.g., 100 rupees = 10000 paisa)
@@ -110,9 +110,7 @@ Future<void> openCheck() async {
     }
   }
 
-
-
-void _handlePaymentSuccess(PaymentSuccessResponse response) {
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
     debugPrint('Payment Success: ${response.paymentId}');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -120,28 +118,33 @@ void _handlePaymentSuccess(PaymentSuccessResponse response) {
         backgroundColor: Colors.green,
       ),
     );
-}
+     Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const GeminiChatScreen()),
+                );
+  }
 
-void _handlePaymentError(PaymentFailureResponse response) {
-    debugPrint('Error Code: ${response.code}\nError Message: ${response.message}');
+  void _handlePaymentError(PaymentFailureResponse response) {
+    debugPrint(
+        'Error Code: ${response.code}\nError Message: ${response.message}');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Payment Failed: ${response.message}'),
         backgroundColor: Colors.red,
       ),
     );
-}
+  }
 
-void _handleExternalWallet(ExternalWalletResponse response) {
+  void _handleExternalWallet(ExternalWalletResponse response) {
     debugPrint('External Wallet: ${response.walletName}');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('External Wallet Selected: ${response.walletName}'),
       ),
     );
-}
+  }
 
-  
   Future<void> _loadSelectedLanguage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -155,7 +158,7 @@ void _handleExternalWallet(ExternalWalletResponse response) {
       controller.dispose();
     }
     super.dispose();
-     _razorpay!.clear(); 
+    _razorpay!.clear();
   }
 
   @override
@@ -203,7 +206,10 @@ void _handleExternalWallet(ExternalWalletResponse response) {
       floatingActionButton: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [ const Color.fromARGB(255, 11, 96, 16), const Color.fromARGB(255, 69, 163, 76)],
+            colors: [
+              const Color.fromARGB(255, 11, 96, 16),
+              const Color.fromARGB(255, 69, 163, 76)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -217,20 +223,22 @@ void _handleExternalWallet(ExternalWalletResponse response) {
             ),
           ],
         ),
-        child: FloatingActionButton(
-          onPressed: () {
-            openCheck();
-          },
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: const Icon(
-            Icons.smart_toy_rounded,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
+        child:
+            FloatingActionButton(
+              onPressed: () {
+                openCheck();
+              },
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: const Icon(
+                Icons.smart_toy_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          
+          
       ),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: screens[indexNum],
     );

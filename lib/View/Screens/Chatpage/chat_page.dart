@@ -1,4 +1,5 @@
 
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -76,7 +77,7 @@ class _MessageScreenState extends State<MessageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.teacherName,style: TextStyle(color: Colors.white),),
+        title: Text(widget.teacherName, style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.black,
       ),
       body: Column(
@@ -100,6 +101,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 }
 
                 final messages = snapshot.data!.docs;
+                DateTime? previousDate;
 
                 return ListView.builder(
                   controller: _scrollController,
@@ -113,55 +115,87 @@ class _MessageScreenState extends State<MessageScreen> {
                     final timestamp =
                         (message['timestamp'] as Timestamp?)?.toDate() ??
                             DateTime.now();
+                    final currentDate = DateTime(
+                        timestamp.year, timestamp.month, timestamp.day);
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisAlignment: isCurrentUser
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
-                        children: [
-                          Container(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.7,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isCurrentUser
-                                  ? Colors.amber
-                                  : Colors.grey[300],
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: isCurrentUser
-                                  ? CrossAxisAlignment.end
-                                  : CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  message['content'],
-                                  style: TextStyle(
-                                    color: isCurrentUser
-                                        ? Colors.white
-                                        : Colors.black,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  DateFormat('HH:mm').format(timestamp),
-                                  style: TextStyle(
-                                    color: isCurrentUser
-                                        ? Colors.white.withOpacity(0.7)
-                                        : Colors.black54,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                    // Display date if it's different from the previous message's date
+                    Widget? dateWidget;
+                    if (previousDate == null || previousDate != currentDate) {
+                      dateWidget = Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            DateFormat('MMMM d, y').format(currentDate),
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      );
+                      previousDate = currentDate;
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (dateWidget != null) dateWidget,
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            mainAxisAlignment: isCurrentUser
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                            children: [
+                              Container(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.7,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isCurrentUser
+                                      ? Colors.amber
+                                      : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: isCurrentUser
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      message['content'],
+                                      style: TextStyle(
+                                        color: isCurrentUser
+                                            ? Colors.white
+                                            : Colors.black,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      DateFormat('HH:mm').format(timestamp),
+                                      style: TextStyle(
+                                        color: isCurrentUser
+                                            ? Colors.white.withOpacity(0.7)
+                                            : Colors.black54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     );
                   },
                 );

@@ -1,9 +1,10 @@
+
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vijay_shilpi/View/Screens/SearchPage/teachervideoscreen.dart';
-import 'package:vijay_shilpi/View/Screens/VIdeoPlayer/videoplayer.dart';
 
 class SearchPage extends StatefulWidget {
   final String studentClass;
@@ -18,15 +19,17 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> allTeachers = [];
   List<Map<String, dynamic>> filteredTeachers = [];
+  List<String> subjects = [];
+  String? selectedSubject;
   bool isLoading = true;
-  bool hasSearched = false; // Add this flag
+  bool hasSearched = false;
   String searchQuery = '';
-    String selectedLanguage = 'en'; // Default language
+  String selectedLanguage = 'en';
 
   @override
   void initState() {
     super.initState();
-    _loadLanguage() ;
+    _loadLanguage();
     _loadTeachers();
   }
 
@@ -36,13 +39,22 @@ class _SearchPageState extends State<SearchPage> {
           .collection('teachers_registration')
           .get();
 
+      final Set<String> uniqueSubjects = {};
+
       setState(() {
-        allTeachers = teacherSnapshot.docs
-            .map((doc) => {
-                  'uuid': doc.id,
-                  'name': (doc.data() as Map<String, dynamic>)['name'] ?? '',
-                })
-            .toList();
+        allTeachers = teacherSnapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final subject = data['subject'] as String? ?? 'Unknown';
+          uniqueSubjects.add(subject);
+          
+          return {
+            'uuid': doc.id,
+            'name': data['name'] ?? '',
+            'subject': subject,
+          };
+        }).toList();
+        
+        subjects = uniqueSubjects.toList()..sort();
         filteredTeachers = List.from(allTeachers);
         isLoading = false;
       });
@@ -59,51 +71,51 @@ class _SearchPageState extends State<SearchPage> {
   void _filterTeachers(String query) {
     setState(() {
       searchQuery = query;
-      hasSearched = query.isNotEmpty; // Set hasSearched when query is not empty
-      if (query.isEmpty) {
-        filteredTeachers = List.from(allTeachers);
-      } else {
-        filteredTeachers = allTeachers
-            .where((teacher) => teacher['name']
-                .toString()
-                .toLowerCase()
-                .contains(query.toLowerCase()))
-            .toList();
-      }
+      hasSearched = query.isNotEmpty || selectedSubject != null;
+      
+      filteredTeachers = allTeachers.where((teacher) {
+        final matchesName = teacher['name']
+            .toString()
+            .toLowerCase()
+            .contains(query.toLowerCase());
+            
+        final matchesSubject = selectedSubject == null || 
+            teacher['subject'] == selectedSubject;
+            
+        return matchesName && matchesSubject;
+      }).toList();
     });
   }
- Future<void> _loadLanguage() async {
+
+  Future<void> _loadLanguage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedLanguage = prefs.getString('selected_language') ?? 'en'; // Load saved language
+      selectedLanguage = prefs.getString('selected_language') ?? 'en';
     });
   }
+
   String _getTranslatedText(String label) {
-    // Add translations for Tamil and English
     if (selectedLanguage == 'ta') {
       switch (label) {
         case 'Search Teachers':
           return 'ஆசிரியர்களைத் தேடுங்கள்';
-        case '''Search teachers...''':
+        case 'Search teachers...':
           return 'ஆசிரியர்களைத் தேடுங்கள்...';
         case 'No teacher found':
           return 'ஆசிரியர் கிடைக்கவில்லை';
         case 'Try searching with a different name':
           return 'வேறு பெயரில் தேட முயற்சிக்கவும்';
-        case 'No videos found for your class':
-          return 'உங்கள் வகுப்பிற்கு வீடியோக்கள் எதுவும் கிடைக்கவில்லை';
-        case 'Teacher:':
-          return 'ஆசிரியர்';
-        case 'Watch now':
-          return 'காண';
+        case 'Select Subject':
+          return 'பாடத்தைத் தேர்ந்தெடுக்கவும்';
+        case 'All Subjects':
+          return 'அனைத்து பாடங்களும்';
         default:
           return label;
       }
-    } else {
-      // Default to English
-      return label;
     }
+    return label;
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,7 +132,7 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
             child: TextField(
               controller: _searchController,
               onChanged: _filterTeachers,
@@ -132,6 +144,43 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[200],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25),
+                color: Colors.grey[200],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: DropdownButton<String>(
+                  value: selectedSubject,
+                  isExpanded: true,
+                  hint: Text(_getTranslatedText('Select Subject')),
+                  underline: Container(),
+                  items: [
+                    DropdownMenuItem<String>(
+                      value: null,
+                      child: Text(_getTranslatedText('All Subjects')),
+                    ),
+                    ...subjects.map((String subject) {
+                      return DropdownMenuItem<String>(
+                        value: subject,
+                        child: Text(subject),
+                      );
+                    }).toList(),
+                  ],
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedSubject = newValue;
+                      _filterTeachers(_searchController.text);
+                    });
+                  },
+                ),
               ),
             ),
           ),
@@ -191,4 +240,3 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 }
-

@@ -2,7 +2,6 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:vijay_shilpi/Model/Homeservice/home_service.dart';
 import 'package:vijay_shilpi/View/Screens/TeacherProfile/teacherprofile.dart';
 import 'package:vijay_shilpi/View/Screens/VIdeoPlayer/videoplayer.dart';
@@ -20,54 +19,16 @@ class _HomePageState extends State<HomePage> {
   String selectedLanguage = 'en';
   bool hasError = false;
   String? studentname;
-  Razorpay? _razorpay;
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay(); // Initialize Razorpay here
     _initializeData();
-    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   @override
   void dispose() {
     super.dispose();
-    _razorpay!.clear(); // Removes all listeners
-  }
-
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    print('payment succsess');
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    print('payment failed');
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    print('payment wallet');
-  }
-
-  Future<void> openCheck() async {
-    var options = {
-      'key': 'rzp_live_ILgsfZCZoFIKMb',
-      'amount': 100,
-      'name': 'Acme Corp.',
-      'description': 'Fine T-Shirt',
-      'retry': {'enabled': true, 'max_count': 1},
-      'send_sms_hash': true,
-      'prefill': {'contact': '8888888888', 'email': 'test@razorpay.com'},
-      'external': {
-        'wallets': ['paytm']
-      }
-    };
-    try {
-      _razorpay!.open(options);
-    } catch (e) {
-      log(e.toString());
-    }
   }
 
   Future<void> _initializeData() async {
@@ -142,7 +103,6 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Header Section
           Container(
             padding: const EdgeInsets.only(top: 35, left: 5, right: 5),
             decoration: const BoxDecoration(
@@ -362,18 +322,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          openCheck(); // Remove the comment to actually call this method
-        },
-        backgroundColor: Colors.yellow.shade700,
-        child: const Icon(
-          Icons.payment,
-          color: Colors.black,
-        ),
-        tooltip: 'Make Payment',
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

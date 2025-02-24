@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vijay_shilpi/View/Screens/Chatpage/chat_page.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -14,11 +15,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+ @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+  String selectedLanguage = 'en';
+  Future<void> _loadLanguage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedLanguage = prefs.getString('selected_language') ?? 'en';
+    });
+  }
+
+  String _getTranslatedText(String label) {
+    if (selectedLanguage == 'ta') {
+      switch (label) {
+       case 'Chats':
+          return 'செய்தி';
+        default:
+          return label;
+      }
+    }
+    return label;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chats',style: TextStyle(color: Colors.white),),
+        title:  Text(_getTranslatedText('Chats'),style: TextStyle(color: Colors.white),),
         backgroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(

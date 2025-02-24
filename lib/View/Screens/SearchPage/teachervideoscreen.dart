@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vijay_shilpi/View/Screens/VIdeoPlayer/videoplayer.dart';
 
-class TeacherVideosSection extends StatelessWidget {
+class TeacherVideosSection extends StatefulWidget {
   final String teacherUuid;
   final String teacherName;
   final String studentClass;
@@ -16,12 +17,43 @@ class TeacherVideosSection extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<TeacherVideosSection> createState() => _TeacherVideosSectionState();
+}
+
+class _TeacherVideosSectionState extends State<TeacherVideosSection> {
+   @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+  String selectedLanguage = 'en';
+  Future<void> _loadLanguage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedLanguage = prefs.getString('selected_language') ?? 'en';
+    });
+  }
+
+  String _getTranslatedText(String label) {
+    if (selectedLanguage == 'ta') {
+      switch (label) {
+       case 'Watch now':
+          return 'காண';
+        default:
+          return label;
+      }
+    }
+    return label;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('videos')
-          .where('teacher_uuid', isEqualTo: teacherUuid)
-          .where('classCategory', isEqualTo: studentClass)
+          .where('teacher_uuid', isEqualTo: widget.teacherUuid)
+          .where('classCategory', isEqualTo: widget.studentClass)
           .where('isapproved', isEqualTo: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -42,7 +74,7 @@ class TeacherVideosSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                teacherName,
+                widget.teacherName,
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -106,7 +138,7 @@ class TeacherVideosSection extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'Watch now',
+                        _getTranslatedText('Watch now'),
                         style: GoogleFonts.poppins(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
