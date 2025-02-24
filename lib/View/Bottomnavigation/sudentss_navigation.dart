@@ -1,10 +1,11 @@
 
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vijay_shilpi/View/Screens/Chatpage/chat_list.dart';
-import 'package:vijay_shilpi/View/Screens/Chatpage/chat_page.dart';
 import 'package:vijay_shilpi/View/Screens/HomePage/home_page.dart';
 import 'package:vijay_shilpi/View/Screens/ProfilePage/profile_page.dart';
 import 'package:vijay_shilpi/View/Screens/SearchPage/search_page.dart';
@@ -21,6 +22,7 @@ class _BottomnavState extends State<Bottomnav> with TickerProviderStateMixin {
   String selectedLanguage = 'en';
   String? studentClass;
   bool isLoading = true;
+  Razorpay? _razorpay;
 
   late List<Widget> screens;
   late List<AnimationController> _animationControllers;
@@ -46,6 +48,10 @@ class _BottomnavState extends State<Bottomnav> with TickerProviderStateMixin {
         )
         .toList();
     _animationControllers[0].forward();
+    _razorpay = Razorpay(); // Initialize Razorpay here
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   Future<void> _fetchStudentClass() async {
@@ -77,17 +83,65 @@ class _BottomnavState extends State<Bottomnav> with TickerProviderStateMixin {
       screens = [
         HomePage(),
         SearchPage(studentClass: studentClass ?? ''), // Pass studentClass here
-    //     MessageScreen(
-    //   currentUserUuid: 'current-user-id',
-    //   teacherUuid: 'teacher-id',
-    //   teacherName: 'Teacher Name',
-    // ),
     ChatListScreen(),
         ProfilePage(),
       ];
     });
   }
+Future<void> openCheck() async {
+    var options = {
+      'key': 'rzp_test_aaPtOi8SSaUyku', // Replace with your test key
+      'amount': 10000, // Amount in paisa (e.g., 100 rupees = 10000 paisa)
+      'name': 'Vijaya Sirpi',
+      'description': 'Payment for your AI',
+      'prefill': {
+        'contact': '9074267478',
+        'email': 'jinspathrose560@gmail.com'
+      },
+      'external': {
+        'wallets': ['paytm']
+      }
+    };
 
+    try {
+      _razorpay?.open(options);
+    } catch (e) {
+      debugPrint('Error: $e');
+    }
+  }
+
+
+
+void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    debugPrint('Payment Success: ${response.paymentId}');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Payment Successful!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+}
+
+void _handlePaymentError(PaymentFailureResponse response) {
+    debugPrint('Error Code: ${response.code}\nError Message: ${response.message}');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment Failed: ${response.message}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+}
+
+void _handleExternalWallet(ExternalWalletResponse response) {
+    debugPrint('External Wallet: ${response.walletName}');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('External Wallet Selected: ${response.walletName}'),
+      ),
+    );
+}
+
+  
   Future<void> _loadSelectedLanguage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -101,6 +155,7 @@ class _BottomnavState extends State<Bottomnav> with TickerProviderStateMixin {
       controller.dispose();
     }
     super.dispose();
+     _razorpay!.clear(); 
   }
 
   @override
@@ -145,6 +200,38 @@ class _BottomnavState extends State<Bottomnav> with TickerProviderStateMixin {
           ),
         ),
       ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [ const Color.fromARGB(255, 11, 96, 16), const Color.fromARGB(255, 69, 163, 76)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.yellow[900]!.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            openCheck();
+          },
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: const Icon(
+            Icons.smart_toy_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: screens[indexNum],
     );
   }

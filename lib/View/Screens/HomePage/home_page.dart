@@ -1,11 +1,12 @@
+import 'dart:developer';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:vijay_shilpi/Model/Homeservice/home_service.dart';
 import 'package:vijay_shilpi/View/Screens/TeacherProfile/teacherprofile.dart';
 import 'package:vijay_shilpi/View/Screens/VIdeoPlayer/videoplayer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -13,72 +14,76 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final HomeService _homeService = HomeService();
   String? studentClass;
   bool isLoading = true;
-  String selectedLanguage = 'en'; // Default language
+  String selectedLanguage = 'en';
   bool hasError = false;
   String? studentname;
-  final Map<String, String> teacherNames = {};
+  Razorpay? _razorpay;
 
   @override
   void initState() {
     super.initState();
-    _loadLanguage();
-    _fetchStudentClass();
+    _razorpay = Razorpay(); // Initialize Razorpay here
+    _initializeData();
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
-  Future<void> _fetchStudentClass() async {
+  @override
+  void dispose() {
+    super.dispose();
+    _razorpay!.clear(); // Removes all listeners
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    print('payment succsess');
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    print('payment failed');
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    print('payment wallet');
+  }
+
+  Future<void> openCheck() async {
+    var options = {
+      'key': 'rzp_live_ILgsfZCZoFIKMb',
+      'amount': 100,
+      'name': 'Acme Corp.',
+      'description': 'Fine T-Shirt',
+      'retry': {'enabled': true, 'max_count': 1},
+      'send_sms_hash': true,
+      'prefill': {'contact': '8888888888', 'email': 'test@razorpay.com'},
+      'external': {
+        'wallets': ['paytm']
+      }
+    };
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() {
-          hasError = true;
-          isLoading = false;
-        });
-        return;
-      }
-      DocumentSnapshot studentDoc = await FirebaseFirestore.instance
-          .collection('students_registration')
-          .doc(user.uid)
-          .get();
-
-      if (studentDoc.exists && studentDoc.data() != null) {
-        studentname = studentDoc['name'].toString().toUpperCase();
-
-        if (studentDoc['class'] != null) {
-          studentClass = studentDoc['class'].toString().trim();
-          setState(() {
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            hasError = true;
-            isLoading = false;
-          });
-        }
-      } else {
-        setState(() {
-          hasError = true;
-          isLoading = false;
-        });
-      }
+      _razorpay!.open(options);
     } catch (e) {
-      setState(() {
-        hasError = true;
-        isLoading = false;
-      });
+      log(e.toString());
     }
   }
 
-  Future<void> _loadLanguage() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+  Future<void> _initializeData() async {
+    final language = await _homeService.loadLanguage();
+    final studentData = await _homeService.fetchStudentClass();
+
     setState(() {
-      selectedLanguage = prefs.getString('selected_language') ?? 'en'; // Load saved language
+      selectedLanguage = language;
+      hasError = studentData['hasError'];
+      studentClass = studentData['studentClass'];
+      studentname = studentData['studentName'];
+      isLoading = false;
     });
   }
 
   String _getTranslatedText(String label) {
-    // Add translations for Tamil and English
     if (selectedLanguage == 'ta') {
       switch (label) {
         case 'Hi, ':
@@ -98,40 +103,26 @@ class _HomePageState extends State<HomePage> {
         default:
           return label;
       }
-    } else {
-      // Default to English
-      return label;
     }
+    return label;
   }
 
-  Future<String> _getTeacherName(String teacherUuid) async {
-    // Check if we already have the teacher name cached
-    if (teacherNames.containsKey(teacherUuid)) {
-      return teacherNames[teacherUuid]!;
-    }
-
-    try {
-      DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-          .collection('teachers_registration')
-          .doc(teacherUuid)
-          .get();
-
-      if (teacherDoc.exists && teacherDoc.data() != null) {
-        String teacherName = teacherDoc['name'] ?? 'Unknown Teacher';
-        // Cache the teacher name
-        teacherNames[teacherUuid] = teacherName;
-        return teacherName;
-      }
-      return 'Unknown Teacher';
-    } catch (e) {
-      return 'Unknown Teacher';
-    }
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+        floatingActionButton: null,
+      );
     }
 
     if (hasError || studentClass == null) {
@@ -142,6 +133,7 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(color: Colors.red),
           ),
         ),
+        floatingActionButton: null,
       );
     }
 
@@ -219,7 +211,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // Suggestions Section
           Padding(
             padding: const EdgeInsets.only(top: 16.0, left: 16),
             child: Text(
@@ -231,7 +222,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // Suggestions ListView
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -250,9 +240,8 @@ class _HomePageState extends State<HomePage> {
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
-                      child: Text(
-                        _getTranslatedText("No videos found for your class")
-                        ));
+                      child: Text(_getTranslatedText(
+                          "No videos found for your class")));
                 }
 
                 final videos = snapshot.data!.docs;
@@ -262,14 +251,14 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     var video = videos[index].data() as Map<String, dynamic>;
                     return FutureBuilder<String>(
-                      future: _getTeacherName(video['teacher_uuid'] ?? ''),
+                      future: _homeService
+                          .getTeacherName(video['teacher_uuid'] ?? ''),
                       builder: (context, teacherSnapshot) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16.0, vertical: 8.0),
                           child: GestureDetector(
                             onTap: () {
-                              // Navigate to TeacherProfilePage
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -298,12 +287,15 @@ class _HomePageState extends State<HomePage> {
                                   borderRadius: BorderRadius.circular(8),
                                   child: video['thumbnail_url'] != null
                                       ? Image.network(video['thumbnail_url'],
-                                          width: 80, height: 80, fit: BoxFit.cover)
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover)
                                       : Container(
                                           width: 80,
                                           height: 80,
                                           color: Colors.grey.shade200,
-                                          child: Icon(Icons.video_library, size: 40),
+                                          child: Icon(Icons.video_library,
+                                              size: 40),
                                         ),
                                 ),
                                 title: Column(
@@ -314,24 +306,27 @@ class _HomePageState extends State<HomePage> {
                                           _getTranslatedText("Teacher:"),
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.bold,
-                                            color: const Color.fromARGB(255, 0, 0, 0),
+                                            color: const Color.fromARGB(
+                                                255, 0, 0, 0),
                                           ),
                                         ),
-                                        Text('${teacherSnapshot.data ?? 'Loading...'}')
+                                        Text(
+                                            '${teacherSnapshot.data ?? 'Loading...'}')
                                       ],
                                     ),
                                   ],
                                 ),
                                 subtitle: Text(
-                                      video['chapter'] ?? "No Title",
-                                      style: GoogleFonts.poppins(
-                                        fontStyle: FontStyle.normal,
-                                        color: const Color.fromARGB(255, 0, 0, 0),
-                                      ),
-                                    ),
+                                  video['chapter'] ?? "No Title",
+                                  style: GoogleFonts.poppins(
+                                    fontStyle: FontStyle.normal,
+                                    color: const Color.fromARGB(255, 0, 0, 0),
+                                  ),
+                                ),
                                 trailing: ElevatedButton(
                                   onPressed: () {
-                                      _trackSubjectProgress(video); 
+                                    _homeService.trackSubjectProgress(
+                                        video, _showMessage);
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -367,162 +362,18 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-    );
-  }
-
-// Future<void> _trackSubjectProgress(Map<String, dynamic> video) async {
-//   try {
-//     final user = FirebaseAuth.instance.currentUser;
-//     if (user == null) return;
-    
-//     // Get teacher_uuid from the video
-//     String teacherUuid = video['teacher_uuid'] ?? '';
-//     if (teacherUuid.isEmpty) return;
-    
-//     // Fetch teacher document to get the subject
-//     DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-//         .collection('teachers_registration')
-//         .doc(teacherUuid)
-//         .get();
-    
-//     if (!teacherDoc.exists || teacherDoc.data() == null) return;
-    
-//     // Get the subject
-//     String subject = teacherDoc['subject'] ?? 'unknown';
-    
-//     // Get the current progress from Firestore
-//     DocumentSnapshot progressDoc = await FirebaseFirestore.instance
-//         .collection('student_progress')
-//         .doc(user.uid)
-//         .get();
-    
-//     Map<String, dynamic> progressData = {};
-//     if (progressDoc.exists && progressDoc.data() != null) {
-//       progressData = progressDoc.data() as Map<String, dynamic>;
-//     }
-    
-//     // Get the current subject progress
-//     int currentProgress = progressData[subject] ?? 0;
-    
-//     // Calculate new progress (increment by 1 for each video watched)
-//     int newProgress = currentProgress + 1;
-    
-//     // Update the progress in Firestore
-//     await FirebaseFirestore.instance
-//         .collection('student_progress')
-//         .doc(user.uid)
-//         .set({
-//           subject: newProgress,
-//           'last_updated': FieldValue.serverTimestamp(),
-//         }, SetOptions(merge: true));
-    
-//     // Show a success message or update UI as needed
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Text('Your progress in $subject has been updated!'),
-//         duration: Duration(seconds: 2),
-//       ),
-//     );
-    
-//   } catch (e) {
-//     print('Error tracking subject progress: $e');
-//     // Handle error as needed
-//   }
-// }
-
-Future<void> _trackSubjectProgress(Map<String, dynamic> video) async {
-  try {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    // Get teacher_uuid from the video
-    String teacherUuid = video['teacher_uuid'] ?? '';
-    if (teacherUuid.isEmpty) return;
-
-    // Fetch teacher document to get the subject
-    DocumentSnapshot teacherDoc = await FirebaseFirestore.instance
-        .collection('teachers_registration')
-        .doc(teacherUuid)
-        .get();
-
-    if (!teacherDoc.exists || teacherDoc.data() == null) return;
-
-    // Get the subject
-    String subject = teacherDoc['subject'] ?? 'unknown';
-
-    // Get the current progress from Firestore
-    DocumentSnapshot progressDoc = await FirebaseFirestore.instance
-        .collection('student_progress')
-        .doc(user.uid)
-        .get();
-
-    Map<String, dynamic> progressData = {};
-    if (progressDoc.exists && progressDoc.data() != null) {
-      progressData = progressDoc.data() as Map<String, dynamic>;
-    }
-
-    // Get the current subject progress
-    int currentProgress = progressData[subject] ?? 0;
-
-    // Calculate new progress (increment by 1 for each video watched)
-    int newProgress = currentProgress + 1;
-
-    // Update the progress in Firestore
-    await FirebaseFirestore.instance
-        .collection('student_progress')
-        .doc(user.uid)
-        .set({
-          subject: newProgress,
-          'last_updated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-
-    // Check if the video already exists in the history collection
-    QuerySnapshot historySnapshot = await FirebaseFirestore.instance
-        .collection('history')
-        .doc(user.uid)
-        .collection('watched_videos')
-        .where('chapter', isEqualTo: video['chapter'])
-        .where('teacher_uuid', isEqualTo: video['teacher_uuid'])
-        .get();
-
-    if (historySnapshot.docs.isNotEmpty) {
-      // Update the existing document with a new timestamp
-      await FirebaseFirestore.instance
-          .collection('history')
-          .doc(user.uid)
-          .collection('watched_videos')
-          .doc(historySnapshot.docs.first.id)
-          .update({
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-    } else {
-      // Add a new document to the history collection
-      await FirebaseFirestore.instance
-          .collection('history')
-          .doc(user.uid)
-          .collection('watched_videos')
-          .add({
-            'chapter': video['chapter'],
-            'description': video['description'],
-            'video_url': video['video_url'],
-            'thumbnail_url': video['thumbnail_url'],
-            'teacher_uuid': video['teacher_uuid'],
-            'teacher_name': await _getTeacherName(video['teacher_uuid'] ?? ''),
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-    }
-
-    // Show a success message or update UI as needed
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Your progress in $subject has been updated!'),
-        duration: Duration(seconds: 2),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          openCheck(); // Remove the comment to actually call this method
+        },
+        backgroundColor: Colors.yellow.shade700,
+        child: const Icon(
+          Icons.payment,
+          color: Colors.black,
+        ),
+        tooltip: 'Make Payment',
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
-
-  } catch (e) {
-    print('Error tracking subject progress: $e');
-    // Handle error as needed
   }
-}
 }

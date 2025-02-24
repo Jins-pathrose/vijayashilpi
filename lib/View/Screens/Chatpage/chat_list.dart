@@ -18,7 +18,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chats'),
+        title: const Text('Chats',style: TextStyle(color: Colors.white),),
         backgroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(
