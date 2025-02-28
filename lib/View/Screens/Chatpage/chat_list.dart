@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vijay_shilpi/View/Screens/Chatpage/chat_page.dart';
 
@@ -44,7 +45,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:  Text(_getTranslatedText('Chats'),style: TextStyle(color: Colors.white),),
+        title:  Text(_getTranslatedText('Chats'),style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w800),),
         backgroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(

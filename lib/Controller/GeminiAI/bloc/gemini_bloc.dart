@@ -4,22 +4,25 @@ import 'package:vijay_shilpi/Controller/GeminiAI/bloc/gemini_event.dart';
 import 'package:vijay_shilpi/Controller/GeminiAI/bloc/gemini_state.dart';
 
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
-  final GenerativeModel _model;
+  late final GenerativeModel _model;
   late ChatSession _chat;
 
-  ChatBloc() : 
-    _model = GenerativeModel(
-      model: 'gemini-pro',
-      apiKey: 'AIzaSyB_e1PtBGVShO-f6_Ek4lsvHdIjpo9T7Ag',
-    ),
-    super(ChatInitial()) {
+  ChatBloc() : super(ChatInitial()) {
     on<InitializeGeminiEvent>(_onInitializeGemini);
     on<SendMessageEvent>(_onSendMessage);
   }
 
   void _onInitializeGemini(InitializeGeminiEvent event, Emitter<ChatState> emit) {
-    _chat = _model.startChat();
-    emit(const ChatLoaded(messages: []));
+    try {
+      _model = GenerativeModel(
+        model: 'gemini-1.5-pro', 
+        apiKey: 'AIzaSyB_e1PtBGVShO-f6_Ek4lsvHdIjpo9T7Ag',
+      );
+      _chat = _model.startChat();
+      emit(const ChatLoaded(messages: []));
+    } catch (e) {
+      emit(ChatError("Failed to initialize Gemini: $e"));
+    }
   }
 
   Future<void> _onSendMessage(SendMessageEvent event, Emitter<ChatState> emit) async {

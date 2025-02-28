@@ -1,20 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required Permissions -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
 
     <application
-        android:label="vijay_shilpi"
+        android:label="vijayaSirpi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        
-        <!-- Razorpay Activity: Not exported and without launcher intent filter -->
+
+        <!-- Razorpay Activity -->
         <activity
             android:name="com.razorpay.CheckoutActivity"
             android:exported="false"
             android:theme="@style/CheckoutTheme">
-            <!-- No intent-filter here -->
         </activity>
 
-        <!-- Main Activity: The launcher for your app -->
+        <!-- Main Activity (Launcher) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -38,7 +39,13 @@
             android:value="2" />
     </application>
 
+    <!-- Required for URL Launcher -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="https"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
